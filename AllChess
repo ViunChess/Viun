@@ -1,0 +1,743 @@
+
+// Authors: Viun Sofiia
+        //Maiboroda Yuriy
+        //Didevich Katia
+        //Klyi Natalia
+        //Mokrushin Yuriy
+
+#include <iostream>
+#include <fstream>
+#include <windows.h>
+
+using namespace std;
+
+void Greeting ()
+{
+char Start='0';
+
+cout<<endl;
+  cout<<"        ******     **"<<endl;
+  cout<<"      **********   **"<<endl;
+  cout<<"    ****           **"<<endl;
+  cout<<"   ***             **             ****        ****       ****      ****"<<endl;
+  cout<<"   ***             **           ********    ***  ***   ***  ***    ****"<<endl;
+  cout<<"   ***             ** ****     ***    ***  ***        ***          ****"<<endl;
+  cout<<"   ***             ****  **    **********    ******     ******      **"<<endl;
+  cout<<"    ****           ***    **   ***              *****      *****      "<<endl;
+  cout<<"      **********   **     **    ****        ***   **   ***   **     **"<<endl;
+  cout<<"       *******     **     **      ******      *****      *****      **"<<endl;
+  cout<<endl;
+  cout<<endl;
+
+  cout<<"                           Welcome to chess game!"<<endl;
+  do {cout<<"                          Press 's' to start game"<<endl;
+  cin>>Start;} while(Start!='s');
+
+  if (Start=='s'){system("cls");};
+  cin.ignore(10,'\n');
+  cin.clear();
+};
+
+void Note()
+{
+  cout<<endl;
+  cout<<"Note!"<<endl;
+  cout<<"First letter means -" <<endl;
+  cout<<"'W' - 'White'      'B' - 'Black'"<<endl;
+  cout<<endl;
+  cout<<"Second letter means -"<<endl;
+  cout<<"'K' - 'King'       'Q' - 'Queen'"<<endl;
+  cout<<"'B' - 'Bishop'     'N' - 'Knight'"<<endl;
+  cout<<"'R' - 'Rook'       'P' - 'Pawn'"<<endl;
+  cout<<endl;
+  cout<<"save - save game"<<endl;
+  cout<<"load - load game"<<endl;
+  cout<<"note - Note!"<<endl;
+  cout<<endl;
+};
+
+class CBoard;
+
+class CAPiece
+{
+public:
+	CAPiece(char cColor, CBoard* board) : mcColor(cColor), pboard(board) {}
+	~CAPiece() {}
+	virtual char GetPiece() = 0;
+	char GetColor() {
+		return mcColor;
+	}
+	bool IsLegalMove(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) {
+		CAPiece* qpDest = qpaaBoard[iDestCol][iDestRow];
+		if ((qpDest == 0) || (mcColor != qpDest->GetColor())) {
+			return AreSquaresLegal(iSrcCol, iSrcRow, iDestCol, iDestRow, qpaaBoard);
+		}
+		return false;
+	}
+protected:
+	virtual bool AreSquaresLegal(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) = 0;
+	char mcColor;
+    CBoard* pboard;
+};
+
+class CPawn : public CAPiece
+{
+public:
+	CPawn(char cColor, CBoard* board) : CAPiece(cColor,board) {}
+	~CPawn() {}
+private:
+	virtual char GetPiece() {
+		return 'P';
+	}
+	bool AreSquaresLegal(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) {
+		CAPiece* qpDest = qpaaBoard[iDestCol][iDestRow];
+		if (qpDest == 0) {
+			if (iSrcCol == iDestCol) {
+				if (GetColor() == 'W') {
+					if (iDestRow == iSrcRow + 1 || iDestRow == 3) {
+						return true;
+					}
+				} else {
+					if (iDestRow == iSrcRow - 1 || iDestRow == 4) {
+						return true;
+					}
+				}
+			}
+		} else {
+			if ((iSrcCol == iDestCol + 1) || (iSrcCol == iDestCol - 1)) {
+				if (GetColor() == 'W') {
+					if (iDestRow == iSrcRow + 1) {
+						return true;
+					}
+				} else {
+					if (iDestRow == iSrcRow - 1) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+};
+
+class CKnight : public CAPiece
+{
+public:
+	CKnight(char cColor, CBoard* board) : CAPiece(cColor,board) {}
+	~CKnight() {}
+private:
+	virtual char GetPiece() {
+		return 'N';
+	}
+	bool AreSquaresLegal(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) {
+		if ((iSrcCol == iDestCol + 1) || (iSrcCol == iDestCol - 1)) {
+			if ((iSrcRow == iDestRow + 2) || (iSrcRow == iDestRow - 2)) {
+				return true;
+			}
+		}
+		if ((iSrcCol == iDestCol + 2) || (iSrcCol == iDestCol - 2)) {
+			if ((iSrcRow == iDestRow + 1) || (iSrcRow == iDestRow - 1)) {
+				return true;
+			}
+		}
+		return false;
+	}
+};
+
+class CBishop : public CAPiece
+{
+public:
+	CBishop(char cColor, CBoard* board) : CAPiece(cColor,board) {}
+	~CBishop() {}
+private:
+	virtual char GetPiece() {
+		return 'B';
+	}
+	bool AreSquaresLegal(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) {
+		if ((iDestCol - iSrcCol == iDestRow - iSrcRow) || (iDestCol - iSrcCol == iSrcRow - iDestRow)) {
+			int iRowOffset = (iDestRow - iSrcRow > 0) ? 1 : -1;
+			int iColOffset = (iDestCol - iSrcCol > 0) ? 1 : -1;
+			int iCheckRow;
+			int iCheckCol;
+			for (iCheckRow = iSrcRow + iRowOffset, iCheckCol = iSrcCol + iColOffset;
+				iCheckRow !=  iDestRow;
+				iCheckRow = iCheckRow + iRowOffset, iCheckCol = iCheckCol + iColOffset)
+			{
+				if (qpaaBoard[iCheckCol][iCheckRow] != 0) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+};
+
+class CRook : public CAPiece
+{
+public:
+	CRook(char cColor, CBoard* board) : CAPiece(cColor,board) {}
+	~CRook() {}
+private:
+	virtual char GetPiece() {
+		return 'R';
+	}
+	bool AreSquaresLegal(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) {
+		if (iSrcRow == iDestRow) {
+			int iColOffset = (iDestCol - iSrcCol > 0) ? 1 : -1;
+			for (int iCheckCol = iSrcCol + iColOffset; iCheckCol !=  iDestCol; iCheckCol = iCheckCol + iColOffset) {
+				if (qpaaBoard[iCheckCol][iSrcRow] != 0) {
+					return false;
+				}
+			}
+			return true;
+		} else if (iDestCol == iSrcCol) {
+			int iRowOffset = (iDestRow - iSrcRow > 0) ? 1 : -1;
+			for (int iCheckRow = iSrcRow + iRowOffset; iCheckRow !=  iDestRow; iCheckRow = iCheckRow + iRowOffset) {
+				if (qpaaBoard[iSrcCol][iCheckRow] != 0) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+};
+
+class CQueen : public CAPiece
+{
+public:
+	CQueen(char cColor, CBoard* board) : CAPiece(cColor,board) {}
+	~CQueen() {}
+private:
+	virtual char GetPiece() {
+		return 'Q';
+	}
+	bool AreSquaresLegal(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) {
+		if (iSrcRow == iDestRow) {
+			int iColOffset = (iDestCol - iSrcCol > 0) ? 1 : -1;
+			for (int iCheckCol = iSrcCol + iColOffset; iCheckCol !=  iDestCol; iCheckCol = iCheckCol + iColOffset) {
+				if (qpaaBoard[iCheckCol][iSrcRow] != 0) {
+					return false;
+				}
+			}
+			return true;
+		} else if (iDestCol == iSrcCol) {
+			int iRowOffset = (iDestRow - iSrcRow > 0) ? 1 : -1;
+			for (int iCheckRow = iSrcRow + iRowOffset; iCheckRow !=  iDestRow; iCheckRow = iCheckRow + iRowOffset) {
+				if (qpaaBoard[iSrcCol][iCheckRow] != 0) {
+					return false;
+				}
+			}
+			return true;
+		} else if ((iDestCol - iSrcCol == iDestRow - iSrcRow) || (iDestCol - iSrcCol == iSrcRow - iDestRow)) {
+			int iRowOffset = (iDestRow - iSrcRow > 0) ? 1 : -1;
+			int iColOffset = (iDestCol - iSrcCol > 0) ? 1 : -1;
+			int iCheckRow;
+			int iCheckCol;
+			for (iCheckRow = iSrcRow + iRowOffset, iCheckCol = iSrcCol + iColOffset;
+				iCheckRow !=  iDestRow;
+				iCheckRow = iCheckRow + iRowOffset, iCheckCol = iCheckCol + iColOffset)
+			{
+				if (qpaaBoard[iCheckCol][iCheckRow] != 0) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+};
+
+class CKing : public CAPiece
+{
+public:
+	CKing(char cColor, CBoard* board) : CAPiece(cColor,board){}
+	~CKing() {}
+private:
+	virtual char GetPiece() {
+		return 'K';
+	}
+	bool AreSquaresLegal(int iSrcCol, int iSrcRow, int iDestCol, int iDestRow, CAPiece* qpaaBoard[8][8]) {
+		int iRowDelta = iDestRow - iSrcRow;
+		int iColDelta = iDestCol - iSrcCol;
+		if (((iRowDelta >= -1) && (iRowDelta <= 1)) &&
+			((iColDelta >= -1) && (iColDelta <= 1)))
+		{
+			return true;
+		}
+		if (iRowDelta==0 && !(IsInCheck(iSrcCol,iSrcRow,qpaaBoard)))
+            if (iColDelta == 2 && qpaaBoard[5][iSrcRow] == 0 && qpaaBoard[6][iSrcRow] == 0)
+            {
+                if(GetColor()=='W' && whiteCastleShort) return true;
+                else if (GetColor()=='B' && blackCastleShort) return true;
+            }
+            else
+            if(iColDelta == -2 && qpaaBoard[3][iSrcRow] == 0 && qpaaBoard[2][iSrcRow] == 0 && qpaaBoard[1][iSrcRow] == 0)
+            {
+                if(GetColor()=='W' && whiteCastleLong) return true;
+                else if (GetColor()=='B' && blackCastleLong) return true;
+            }
+		return false;
+	}
+
+    static bool whiteCastleShort;
+    static bool whiteCastleLong;
+    static bool blackCastleShort;
+    static bool blackCastleLong;
+
+public:
+	bool IsInCheck(int iKingCol, int iKingRow, CAPiece* qpaaBoard[8][8])
+	{
+		for (int iRow = 0; iRow < 8; ++iRow) {
+			for (int iCol = 0; iCol < 8; ++iCol) {
+				if (qpaaBoard[iCol][iRow] != 0) {
+					if (qpaaBoard[iCol][iRow]->GetColor() != GetColor()) {
+						if (qpaaBoard[iCol][iRow]->IsLegalMove(iCol, iRow, iKingCol, iKingRow, qpaaBoard)) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+    void ChangeCastleStatus(int Col, int Row)
+    {
+        if (Row == 7)
+        {
+            if (Col == 4)
+            {
+                blackCastleShort = false;
+                blackCastleLong = false;
+            }
+            else if (Col == 7)
+            {
+                blackCastleShort = false;
+            }
+            else if (Col == 0)
+            {
+                blackCastleLong = false;
+            }
+        }
+        else if (Row == 0)
+        {
+            if (Col == 4)
+            {
+                whiteCastleShort = false;
+                whiteCastleLong = false;
+            }
+            else if (Col == 7)
+            {
+                whiteCastleShort = false;
+            }
+            else if (Col == 0)
+            {
+                whiteCastleLong = false;
+            }
+        }
+    }
+};
+bool CKing::whiteCastleShort=true;
+bool CKing::whiteCastleLong=true;
+bool CKing::blackCastleShort=true;
+bool CKing::blackCastleLong=true;
+
+class CBoard
+{
+public:
+	CBoard() {
+		for (int iRow = 0; iRow < 8; ++iRow) {
+			for (int iCol = 0; iCol < 8; ++iCol) {
+				mqpaaBoard[iCol][iRow] = 0;
+			}
+		}
+		for (int iCol = 0; iCol < 8; ++iCol) {
+			mqpaaBoard[iCol][6] = new CPawn('B', this);
+		}
+		mqpaaBoard[0][7] = new CRook('B', this);
+		mqpaaBoard[1][7] = new CKnight('B', this);
+		mqpaaBoard[2][7] = new CBishop('B', this);
+		mqpaaBoard[3][7] = new CQueen('B', this);
+		mqpaaBoard[4][7] = new CKing('B', this);
+		mqpaaBoard[5][7] = new CBishop('B', this);
+		mqpaaBoard[6][7] = new CKnight('B', this);
+		mqpaaBoard[7][7] = new CRook('B', this);
+		for (int iCol = 0; iCol < 8; ++iCol) {
+			mqpaaBoard[iCol][1] = new CPawn('W', this);
+		}
+		mqpaaBoard[0][0] = new CRook('W', this);
+		mqpaaBoard[1][0] = new CKnight('W', this);
+		mqpaaBoard[2][0] = new CBishop('W', this);
+		mqpaaBoard[3][0] = new CQueen('W', this);
+        mqpaaBoard[4][0] = new CKing('W', this);
+		mqpaaBoard[5][0] = new CBishop('W', this);
+		mqpaaBoard[6][0] = new CKnight('W', this);
+		mqpaaBoard[7][0] = new CRook('W', this);
+	}
+	~CBoard() {
+		for (int iRow = 0; iRow < 8; ++iRow) {
+			for (int iCol = 0; iCol < 8; ++iCol) {
+				delete mqpaaBoard[iCol][iRow];
+				mqpaaBoard[iCol][iRow] = 0;
+			}
+		}
+	}
+
+	void Print() {
+		using namespace std;
+		const int kiSquareWidth = 4;
+		const int kiSquareHeight = 3;
+
+		for (int iRow = 0; iRow < kiSquareHeight; ++iRow) {
+			if (iRow % 3 == 1) {
+				cout << "---";
+				for (int iCol = 0; iCol < 8*kiSquareWidth; ++iCol) {
+					int iSquareCol = iCol/kiSquareWidth;
+					if ((iCol % 4) == 1) {
+						cout << ((char)('a'+iSquareCol));
+					} else {
+						cout << '-';
+					}
+				}
+				cout << "---";
+				cout << endl;
+			} else {
+				for (int iCol = 2; iCol < 10*kiSquareWidth; ++iCol) {
+					cout << '-';
+				}
+				cout << endl;
+			}
+		}
+
+		for (int iRow = 0; iRow < 8*kiSquareHeight; ++iRow) {
+			int iSquareRow = iRow/kiSquareHeight;
+			if (iRow % 3 == 1) {
+				cout << '-' << (char)('1' + 7 - iSquareRow) << '-';
+			} else {
+				cout << "---";
+			}
+			for (int iCol = 0; iCol < 8*kiSquareWidth; ++iCol) {
+				int iSquareCol = iCol/kiSquareWidth;
+				if (((iRow % 3) == 1) && ((iCol % 4) == 1 || (iCol % 4) == 2) && mqpaaBoard[iSquareCol][7-iSquareRow] != 0) {
+					if ((iCol % 4) == 1) {
+						cout << mqpaaBoard[iSquareCol][7-iSquareRow]->GetColor();
+					} else {
+						cout << mqpaaBoard[iSquareCol][7-iSquareRow]->GetPiece();
+					}
+				} else {
+					if ((iSquareRow + iSquareCol) % 2 == 1) {
+						cout << ' ';
+					} else {
+						cout << '*';
+					}
+				}
+			}
+			if (iRow % 3 == 1) {
+				cout << '-' << (char)('1' + 7 - iSquareRow) << '-';
+			} else {
+				cout << "---";
+			}
+			cout << endl;
+		}
+		for (int iRow = 0; iRow < kiSquareHeight; ++iRow) {
+			if (iRow % 3 == 1) {
+				cout << "---";
+				for (int iCol = 0; iCol < 8*kiSquareWidth; ++iCol) {
+					int iSquareCol = iCol/kiSquareWidth;
+					if ((iCol % 4) == 1) {
+						cout << ((char)('a'+iSquareCol));
+					} else {
+						cout << '-';
+					}
+				}
+				cout << "---";
+				cout << endl;
+			} else {
+				for (int iCol = 2; iCol < 10*kiSquareWidth; ++iCol) {
+					cout << '-';
+				}
+				cout << endl;
+			}
+		}
+	}
+
+	bool IsInCheck(char cColor) {
+		bool result=false;
+		for (int iRow = 0; iRow < 8; ++iRow) {
+			for (int iCol = 0; iCol < 8; ++iCol) {
+				if (mqpaaBoard[iCol][iRow] != 0) {
+					if (mqpaaBoard[iCol][iRow]->GetColor() == cColor) {
+						if (mqpaaBoard[iCol][iRow]->GetPiece() == 'K') {
+							CKing* CK= dynamic_cast<CKing*>(mqpaaBoard[iCol][iRow]);
+							result=(CK->IsInCheck(iCol,iRow,mqpaaBoard));
+							if (result) break;
+						}
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+	bool CanMove(char cColor) {
+		for (int iRow = 0; iRow < 8; ++iRow) {
+			for (int iCol = 0; iCol < 8; ++iCol) {
+				if (mqpaaBoard[iCol][iRow] != 0) {
+					if (mqpaaBoard[iCol][iRow]->GetColor() == cColor) {
+						for (int iMoveRow = 0; iMoveRow < 8; ++iMoveRow) {
+							for (int iMoveCol = 0; iMoveCol < 8; ++iMoveCol) {
+								if (mqpaaBoard[iCol][iRow]->IsLegalMove(iCol, iRow, iMoveCol, iMoveRow, mqpaaBoard)) {
+									CAPiece* qpTemp					= mqpaaBoard[iMoveCol][iMoveRow];
+									mqpaaBoard[iMoveCol][iMoveRow]	= mqpaaBoard[iCol][iRow];
+									mqpaaBoard[iCol][iRow]			= 0;
+									bool bCanMove = !IsInCheck(cColor);
+									mqpaaBoard[iCol][iRow]			= mqpaaBoard[iMoveCol][iMoveRow];
+									mqpaaBoard[iMoveCol][iMoveRow]	= qpTemp;
+									if (bCanMove) {
+										return true;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	CAPiece* mqpaaBoard[8][8];
+};
+
+
+bool save(string name, CBoard* board, char PlayerTurn)
+{
+    ofstream of;
+    CreateDirectory("save", NULL);
+    name="save\\"+name+".txt";
+    of.open(name);
+    if (!of.is_open()) return false;
+    for (int i=7;i>=0;i--)
+    {
+        for (int j=0;j<8;j++)
+        {
+            if (board->mqpaaBoard[j][i])
+            {
+                of<<board->mqpaaBoard[j][i]->GetColor();
+                of<<board->mqpaaBoard[j][i]->GetPiece();
+            }
+            else of<<"00";
+        }
+        of<<'\n';
+    }
+    of<<PlayerTurn;
+    of.close();
+    return true;
+}
+
+bool load(string name, CBoard* board, char* PlayerTurn)
+{
+    ifstream f;
+    name="save\\"+name+".txt";
+    f.open(name);
+    if (!f.is_open()) return false;
+    string temp[8];
+    for (int i=7;i>=0;i--)
+    {
+        f>>temp[i];
+        if (temp[i].length()!=16) return false;
+    }
+    char c='W';
+    if (!f.eof())
+    {
+        f>>c;
+        if (c!='W' && c!='B') return false;
+    }
+    for (int j=0;j<8;j++)
+    {
+        for (int i=0;i<8;i++)
+        {
+            if (temp[i][j*2]=='0' && temp[i][j*2+1]=='0') continue;
+            if(temp[i][j*2]!='W' &&
+               temp[i][j*2]!='B' ||
+               temp[i][j*2+1]!='R' &&
+               temp[i][j*2+1]!='N' &&
+               temp[i][j*2+1]!='B' &&
+               temp[i][j*2+1]!='Q' &&
+               temp[i][j*2+1]!='K' &&
+               temp[i][j*2+1]!='P') return false;
+        }
+    }
+    for (int i=0;i<8;i++)
+        for (int j=0;j<8;j++)
+        {
+//            delete (board.mqpaaBoard[j][i]);
+            switch (temp[i][j*2+1])
+            {
+                case 'R': board->mqpaaBoard[j][i]=new CRook(temp[i][j*2],board); break;
+                case 'N': board->mqpaaBoard[j][i]=new CKnight(temp[i][j*2],board); break;
+                case 'B': board->mqpaaBoard[j][i]=new CBishop(temp[i][j*2],board); break;
+                case 'Q': board->mqpaaBoard[j][i]=new CQueen(temp[i][j*2],board); break;
+                case 'K': board->mqpaaBoard[j][i]=new CKing(temp[i][j*2],board); break;
+                case 'P': board->mqpaaBoard[j][i]=new CPawn(temp[i][j*2],board); break;
+                case '0': board->mqpaaBoard[j][i]=NULL;
+            }
+        }
+    f.close();
+    *PlayerTurn=c;
+    return true;
+}
+
+class CChess
+{
+public:
+	CChess() : mcPlayerTurn('W') {}
+	~CChess(){}
+
+	void Start() {
+		do {
+			GetNextMove(mqGameBoard.mqpaaBoard);
+			AlternateTurn();
+		} while (!IsGameOver());
+		mqGameBoard.Print();
+	}
+
+	bool GetNextMove(CAPiece* qpaaBoard[8][8]) {
+		using namespace std;
+		bool bValidMove		= false;
+		do {
+			mqGameBoard.Print();
+
+			cout << mcPlayerTurn << "'s Move: ";
+			int iStartRow;
+			int iStartCol;
+			int iEndRow;
+			int iEndCol;
+			go(&iStartCol,&iStartRow);
+			cout << "To: ";
+			go(&iEndCol,&iEndRow);
+			if ((iStartRow >= 0 && iStartRow <= 7) &&
+				(iStartCol >= 0 && iStartCol <= 7) &&
+				(iEndRow >= 0 && iEndRow <= 7) &&
+				(iEndCol >= 0 && iEndCol <= 7)) {
+				CAPiece* qpCurrPiece = qpaaBoard[iStartCol][iStartRow];
+				if ((qpCurrPiece != 0) && (qpCurrPiece->GetColor() == mcPlayerTurn)) {
+					if (qpCurrPiece->IsLegalMove(iStartCol, iStartRow, iEndCol, iEndRow, qpaaBoard)) {
+						CAPiece* qpTemp					= qpaaBoard[iEndCol][iEndRow];
+						qpaaBoard[iEndCol][iEndRow]		= qpaaBoard[iStartCol][iStartRow];
+						qpaaBoard[iStartCol][iStartRow]	= 0;
+						if (!mqGameBoard.IsInCheck(mcPlayerTurn)) {
+							bValidMove = true;
+							if (qpaaBoard[iEndCol][iEndRow]->GetPiece()=='K')
+                            {
+                                if (iEndRow==iStartRow)
+                                    if (iEndCol-iStartCol==2)
+                                    {
+                                        qpaaBoard[4][iEndRow]=qpaaBoard[7][iEndRow];
+                                        qpaaBoard[7][iEndRow]=0;
+                                        qpTemp=qpaaBoard[4][iEndRow];
+                                    }
+                                    if (iEndCol-iStartCol==-2)
+                                    {
+                                        qpaaBoard[2][iEndRow]=qpaaBoard[0][iEndRow];
+                                        qpaaBoard[0][iEndRow]=0;
+                                        qpTemp=qpaaBoard[2][iEndRow];
+                                    }
+                                CKing* CK= dynamic_cast<CKing*>(qpaaBoard[iEndCol][iEndRow]);
+                                CK->ChangeCastleStatus(iStartCol,iStartRow);
+                            }
+                            else if (qpaaBoard[iEndCol][iEndRow]->GetPiece()=='R')
+                            {
+                                for (int r=0;r<8;r++)
+                                    for (int c=0;c<8;c++)
+                                    {
+                                        if (qpaaBoard[c][r]->GetPiece()=='K' && qpaaBoard[c][r]->GetColor()==mcPlayerTurn)
+                                        {
+                                            CKing* CK= dynamic_cast<CKing*>(qpaaBoard[iEndCol][iEndRow]);
+                                            CK->ChangeCastleStatus(iStartCol,iStartRow);
+                                        }
+                                    }
+                            }
+                        	delete qpTemp;
+						} else {
+							qpaaBoard[iStartCol][iStartRow] = qpaaBoard[iEndCol][iEndRow];
+							qpaaBoard[iEndCol][iEndRow]		= qpTemp;
+						}
+					}
+				}
+			}
+			if (!bValidMove) {
+				cout << "Invalid Move!" << endl;
+
+			}
+		} while (!bValidMove);
+	}
+
+	void AlternateTurn() {
+		mcPlayerTurn = (mcPlayerTurn == 'W') ? 'B' : 'W';
+	}
+
+	bool IsGameOver() {
+		bool bCanMove(false);
+		bCanMove = mqGameBoard.CanMove(mcPlayerTurn);
+		if (!bCanMove) {
+			if (mqGameBoard.IsInCheck(mcPlayerTurn)) {
+				AlternateTurn();
+				std::cout << "Checkmate, " << mcPlayerTurn << " Wins!" << std::endl;
+			} else {
+				std::cout << "Stalemate!" << std::endl;
+			}
+		}
+		return !bCanMove;
+	}
+
+private:
+	CBoard mqGameBoard;
+	char mcPlayerTurn;
+
+	bool go(int*iCol, int* iRow)
+    {
+        string temp;
+        cin.unsetf(ios::skipws);
+        cin>>temp;
+        cin.setf(ios::skipws);
+        cin.clear();
+        cin.ignore(10,'\n');
+        if (temp=="note" || temp=="NOTE") Note();
+        else if (temp=="save")
+        {
+            string name;
+            cout<<endl<<"Savename: ";
+            cin>>name;
+            if (save(name,&mqGameBoard,mcPlayerTurn)) cout<<"Save completed"<<endl;
+            else cout << "Save failed"<<endl;
+        }else if (temp=="load")
+        {
+            string name;
+            cout<<endl<<"Loadname: ";
+            cin>>name;
+            if (load(name,&mqGameBoard,&mcPlayerTurn)) cout<<"Load completed"<<endl;
+            else cout << "Load failed"<<endl;
+        }
+        if (temp.length()!=2) return false;
+        if (((temp[0]>='a'&&temp[0]<='h') || (temp[0]>='A'&&temp[0]<='H')) &&(temp[1]>='1'&&temp[1]<='8'))
+        {
+            *iCol=(toupper(temp[0])-'A');
+            *iRow=(temp[1]-'0'-1);
+            return true;
+        }
+        return false;
+    }
+};
+
+
+int main() {
+    Greeting();
+    Note();
+    CChess qGame;
+	qGame.Start();
+	return 0;
+}
